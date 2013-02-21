@@ -91,7 +91,8 @@
 - (void)openInInAppBrowser:(NSURL*)url withOptions:(NSString*)options
 {
     if (self.inAppBrowserViewController == nil) {
-        NSString* originalUA = [CDVViewController originalUserAgent];
+        CDVViewController *vc = (CDVViewController *)self.viewController;
+        NSString *originalUA = [[vc class] originalUserAgent];
         self.inAppBrowserViewController = [[CDVInAppBrowserViewController alloc] initWithUserAgent:originalUA];
         self.inAppBrowserViewController.navigationDelegate = self;
 
