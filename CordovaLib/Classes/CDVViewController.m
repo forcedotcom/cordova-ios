@@ -552,7 +552,7 @@ static NSString* gOriginalUserAgent = nil;
     if ((autoHideSplashScreenValue == nil) || [autoHideSplashScreenValue boolValue]) {
         self.imageView.hidden = YES;
         self.activityView.hidden = YES;
-        [self.view.superview bringSubviewToFront:self.webView];
+        [self.view bringSubviewToFront:self.webView];
     }
     [self didRotateFromInterfaceOrientation:(UIInterfaceOrientation)[[UIDevice currentDevice] orientation]];
 
