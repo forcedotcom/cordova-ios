@@ -306,9 +306,16 @@ static NSString* gOriginalUserAgent = nil;
     }
 
     // /////////////////
-
+    
+    // read time out setting
+    NSTimeInterval timeout = 20.0; // default time out
+    NSString *timeOutString = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CordovaRequestTimeoutInSecs"];
+    if (timeOutString) {
+        timeout = [timeOutString floatValue];
+    }
+    NSLog(@"setting cordova request load timeout to %f", timeout);
     if (!loadErr) {
-        NSURLRequest* appReq = [NSURLRequest requestWithURL:appURL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:20.0];
+        NSURLRequest* appReq = [NSURLRequest requestWithURL:appURL cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:timeout];
         [self.webView loadRequest:appReq];
     } else {
         NSString* html = [NSString stringWithFormat:@"<html><body> %@ </body></html>", loadErr];
