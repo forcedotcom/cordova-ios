@@ -54,6 +54,7 @@ static NSString* gOriginalUserAgent = nil;
 @synthesize wwwFolderName, startPage, invokeString, initialized;
 @synthesize commandDelegate = _commandDelegate;
 @synthesize commandQueue = _commandQueue;
+@synthesize splashScreenDisplayed = _splashScreenDisplayed;
 
 - (void)__init
 {
@@ -61,8 +62,6 @@ static NSString* gOriginalUserAgent = nil;
         _commandQueue = [[CDVCommandQueue alloc] initWithViewController:self];
         _commandDelegate = [[CDVCommandDelegateImpl alloc] initWithViewController:self];
         [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receivedOrientationChange)
-                                                     name:UIDeviceOrientationDidChangeNotification object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onAppWillTerminate:)
                                                      name:UIApplicationWillTerminateNotification object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onAppWillResignActive:)
@@ -179,6 +178,10 @@ static NSString* gOriginalUserAgent = nil;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    
+    if (self.useSplashScreen) {
+        [self showSplashScreen];
+    }
 
     NSURL* appURL = nil;
     NSString* loadErr = nil;
@@ -321,6 +324,12 @@ static NSString* gOriginalUserAgent = nil;
         NSString* html = [NSString stringWithFormat:@"<html><body> %@ </body></html>", loadErr];
         [self.webView loadHTMLString:html baseURL:nil];
     }
+}
+
+- (void)viewWillLayoutSubviews
+{
+    [super viewWillLayoutSubviews];
+    self.activityView.center = CGPointMake(self.view.bounds.size.width / 2.0, self.view.bounds.size.height / 2.0);
 }
 
 - (NSArray*)parseInterfaceOrientations:(NSArray*)orientations
@@ -557,9 +566,12 @@ static NSString* gOriginalUserAgent = nil;
     id autoHideSplashScreenValue = [self.settings objectForKey:@"AutoHideSplashScreen"];
     // if value is missing, default to yes
     if ((autoHideSplashScreenValue == nil) || [autoHideSplashScreenValue boolValue]) {
-        self.imageView.hidden = YES;
-        self.activityView.hidden = YES;
+        [self.activityView removeFromSuperview];
+        [self.imageView removeFromSuperview];
+        self.activityView = nil;
+        self.imageView = nil;
         [self.view bringSubviewToFront:self.webView];
+        _splashScreenDisplayed = NO;
     }
     [self didRotateFromInterfaceOrientation:(UIInterfaceOrientation)[[UIDevice currentDevice] orientation]];
 
@@ -686,9 +698,12 @@ static NSString* gOriginalUserAgent = nil;
 
 - (void)showSplashScreen
 {
-    CGRect screenBounds = [[UIScreen mainScreen] bounds];
+    if (_splashScreenDisplayed) {
+        NSLog(@"[CDVViewController showSplashScreen]: Splash screen is already displayed.  No action taken.");
+        return;
+    }
+    
     NSString* launchImageFile = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UILaunchImageFile"];
-
     if (launchImageFile == nil) { // fallback if no launch image was specified
         if (CDV_IsIPhone5()) {
             // iPhone 5 or iPod Touch 6th-gen
@@ -697,75 +712,57 @@ static NSString* gOriginalUserAgent = nil;
             launchImageFile = @"Default";
         }
     }
-
-    NSString* orientedLaunchImageFile = nil;
-    CGAffineTransform startupImageTransform = CGAffineTransformIdentity;
+    
+    NSString* orientedLaunchImageFile = launchImageFile;
     UIDeviceOrientation deviceOrientation = [UIDevice currentDevice].orientation;
-    CGRect statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
     UIInterfaceOrientation statusBarOrientation = [UIApplication sharedApplication].statusBarOrientation;
-    UIImage* launchImage = nil;
-
-    // default to center of screen as in the original implementation. This will produce the 20px jump
-    CGPoint center = CGPointMake((screenBounds.size.width / 2), (screenBounds.size.height / 2));
-
+    
     if (CDV_IsIPad()) {
         if (!UIDeviceOrientationIsValidInterfaceOrientation(deviceOrientation)) {
             deviceOrientation = (UIDeviceOrientation)statusBarOrientation;
         }
-
+        
         switch (deviceOrientation) {
-            case UIDeviceOrientationLandscapeLeft: // this is where the home button is on the right (yeah, I know, confusing)
-                {
-                    orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Landscape", launchImageFile];
-                    startupImageTransform = CGAffineTransformMakeRotation(degreesToRadian(90));
-                    center.x -= MIN(statusBarFrame.size.width, statusBarFrame.size.height) / 2;
-                }
+            case UIDeviceOrientationLandscapeLeft:
+            case UIDeviceOrientationLandscapeRight:
+                orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Landscape", launchImageFile];
                 break;
-
-            case UIDeviceOrientationLandscapeRight: // this is where the home button is on the left (yeah, I know, confusing)
-                {
-                    orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Landscape", launchImageFile];
-                    startupImageTransform = CGAffineTransformMakeRotation(degreesToRadian(-90));
-                    center.x += MIN(statusBarFrame.size.width, statusBarFrame.size.height) / 2;
-                }
-                break;
-
+                
             case UIDeviceOrientationPortraitUpsideDown:
-                {
-                    orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Portrait", launchImageFile];
-                    startupImageTransform = CGAffineTransformMakeRotation(degreesToRadian(180));
-                    center.y -= MIN(statusBarFrame.size.width, statusBarFrame.size.height) / 2;
-                }
-                break;
-
             case UIDeviceOrientationPortrait:
             default:
-                {
-                    orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Portrait", launchImageFile];
-                    startupImageTransform = CGAffineTransformIdentity;
-                    center.y += MIN(statusBarFrame.size.width, statusBarFrame.size.height) / 2;
-                }
+                orientedLaunchImageFile = [NSString stringWithFormat:@"%@-Portrait", launchImageFile];
                 break;
         }
-    } else { // not iPad
-        orientedLaunchImageFile = launchImageFile;
     }
-
-    launchImage = [UIImage imageNamed:[[self class] resolveImageResource:orientedLaunchImageFile]];
+    
+    UIImage *launchImage = [UIImage imageNamed:[[self class] resolveImageResource:orientedLaunchImageFile]];
     if (launchImage == nil) {
         NSLog(@"WARNING: Splash-screen image '%@' was not found. Orientation: %d, iPad: %d", orientedLaunchImageFile, deviceOrientation, CDV_IsIPad());
     }
-
+    
     self.imageView = [[UIImageView alloc] initWithImage:launchImage];
     self.imageView.tag = 1;
-    self.imageView.center = center;
-
+    
+    // iPhone launch images build in status bar height, so we need to adjust the frame to account for it.
+    CGRect splashScreenFrame;
+    if (CDV_IsIPad()) {
+        splashScreenFrame = self.view.bounds;
+    } else {
+        CGSize statusBarSize = [UIApplication sharedApplication].statusBarFrame.size;
+        CGFloat statusBarHeight = MIN(statusBarSize.width, statusBarSize.height);
+        splashScreenFrame = CGRectMake(self.view.bounds.origin.x,
+                                       self.view.bounds.origin.y - statusBarHeight,
+                                       self.view.bounds.size.width,
+                                       self.view.bounds.size.height + statusBarHeight);
+    }
+    
+    self.imageView.frame = splashScreenFrame;
     self.imageView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin);
-    [self.imageView setTransform:startupImageTransform];
-    [self.view.superview addSubview:self.imageView];
-
+    [self.view addSubview:self.imageView];
+    
     /*
-     * The Activity View is the top spinning throbber in the status/battery bar. We init it with the default Grey Style.
+     * The Activity View will display as an activity spinner in the middle of the splash screen. We init it with the default Grey Style.
      *
      *     whiteLarge = UIActivityIndicatorViewStyleWhiteLarge
      *     white      = UIActivityIndicatorViewStyleWhite
@@ -774,7 +771,7 @@ static NSString* gOriginalUserAgent = nil;
      */
     NSString* topActivityIndicator = [self.settings objectForKey:@"TopActivityIndicator"];
     UIActivityIndicatorViewStyle topActivityIndicatorStyle = UIActivityIndicatorViewStyleGray;
-
+    
     if ([topActivityIndicator isEqualToString:@"whiteLarge"]) {
         topActivityIndicatorStyle = UIActivityIndicatorViewStyleWhiteLarge;
     } else if ([topActivityIndicator isEqualToString:@"white"]) {
@@ -782,31 +779,20 @@ static NSString* gOriginalUserAgent = nil;
     } else if ([topActivityIndicator isEqualToString:@"gray"]) {
         topActivityIndicatorStyle = UIActivityIndicatorViewStyleGray;
     }
-
+    
     self.activityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:topActivityIndicatorStyle];
     self.activityView.tag = 2;
-
+    
     id showSplashScreenSpinnerValue = [self.settings objectForKey:@"ShowSplashScreenSpinner"];
     // backwards compatibility - if key is missing, default to true
     if ((showSplashScreenSpinnerValue == nil) || [showSplashScreenSpinnerValue boolValue]) {
-        [self.view.superview addSubview:self.activityView];
+        [self.view addSubview:self.activityView];
     }
-
+    
     self.activityView.center = self.view.center;
     [self.activityView startAnimating];
-
-    [self.view.superview layoutSubviews];
-}
-
-BOOL gSplashScreenShown = NO;
-- (void)receivedOrientationChange
-{
-    if (self.imageView == nil) {
-        gSplashScreenShown = YES;
-        if (self.useSplashScreen) {
-            [self showSplashScreen];
-        }
-    }
+    
+    _splashScreenDisplayed = YES;
 }
 
 #pragma mark CordovaCommands
