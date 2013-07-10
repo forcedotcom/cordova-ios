@@ -56,6 +56,7 @@
 @property (nonatomic, readonly, strong) CDVCommandQueue* commandQueue;
 @property (nonatomic, readonly, strong) CDVCommandDelegateImpl* commandDelegate;
 @property (nonatomic, readonly) NSString* userAgent;
+@property (nonatomic, readonly) BOOL splashScreenDisplayed;
 
 + (NSDictionary*)getBundlePlist:(NSString*)plistName;
 + (NSString*)applicationDocumentsDirectory;
@@ -64,6 +65,7 @@
 - (void)printMultitaskingInfo;
 - (void)createGapView;
 - (CDVCordovaView*)newCordovaViewWithFrame:(CGRect)bounds;
+- (void)showSplashScreen;
 
 - (void)javascriptAlert:(NSString*)text;
 - (NSString*)appURLScheme;
