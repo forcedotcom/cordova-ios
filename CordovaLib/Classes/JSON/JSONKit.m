@@ -2943,7 +2943,7 @@ errorExit:
     NSError *jsonError = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
     if (jsonError != nil) {
-        NSLog(@"[NSString cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        NSLog(@"[NSString cdvjk_JSONString]: ERROR serializing JSON.");
         return nil;
     } else {
         return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
@@ -2983,7 +2983,7 @@ errorExit:
     NSError *jsonError = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
     if (jsonError != nil) {
-        NSLog(@"[NSArray cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        NSLog(@"[NSArray cdvjk_JSONString]: ERROR serializing JSON.");
         return nil;
     } else {
         return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
@@ -3028,7 +3028,7 @@ errorExit:
     NSError *jsonError = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
     if (jsonError != nil) {
-        NSLog(@"[NSDictionary cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        NSLog(@"[NSDictionary cdvjk_JSONString]: ERROR serializing JSON.");
         return nil;
     } else {
         return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
