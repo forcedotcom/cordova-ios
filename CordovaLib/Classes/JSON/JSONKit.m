@@ -2940,7 +2940,14 @@ errorExit:
 
 - (NSString *)cdvjk_JSONString
 {
-  return([self cdvjk_JSONStringWithOptions:CDVJKSerializeOptionNone includeQuotes:YES error:NULL]);
+    NSError *jsonError = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
+    if (jsonError != nil) {
+        NSLog(@"[NSString cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        return nil;
+    } else {
+        return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
+    }
 }
 
 - (NSString *)cdvjk_JSONStringWithOptions:(CDVJKSerializeOptionFlags)serializeOptions includeQuotes:(BOOL)includeQuotes error:(NSError **)error
@@ -2973,7 +2980,14 @@ errorExit:
 
 - (NSString *)cdvjk_JSONString
 {
-  return([CDVJKSerializer serializeObject:self options:CDVJKSerializeOptionNone encodeOption:(CDVJKEncodeOptionAsString | CDVJKEncodeOptionCollectionObj) block:NULL delegate:NULL selector:NULL error:NULL]);
+    NSError *jsonError = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
+    if (jsonError != nil) {
+        NSLog(@"[NSArray cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        return nil;
+    } else {
+        return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
+    }
 }
 
 - (NSString *)cdvjk_JSONStringWithOptions:(CDVJKSerializeOptionFlags)serializeOptions error:(NSError **)error
@@ -3011,7 +3025,14 @@ errorExit:
 
 - (NSString *)cdvjk_JSONString
 {
-  return([CDVJKSerializer serializeObject:self options:CDVJKSerializeOptionNone encodeOption:(CDVJKEncodeOptionAsString | CDVJKEncodeOptionCollectionObj) block:NULL delegate:NULL selector:NULL error:NULL]);
+    NSError *jsonError = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:self options:0 error:&jsonError];
+    if (jsonError != nil) {
+        NSLog(@"[NSDictionary cdvjk_JSONString]: ERROR serializing JSON: %@", [jsonError localizedDescription]);
+        return nil;
+    } else {
+        return [[[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] autorelease];
+    }
 }
 
 - (NSString *)cdvjk_JSONStringWithOptions:(CDVJKSerializeOptionFlags)serializeOptions error:(NSError **)error
